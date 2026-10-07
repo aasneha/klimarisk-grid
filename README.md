@@ -126,3 +126,5 @@ python scripts/prepare_data.py
 ```
 
 The preprocessing script prepares the files used by the dashboard frontend. It processes the source Excel data into multiple JSON data files, cleans the GeoJSON geometry data, and prepares the data model used by the application.
+
+
