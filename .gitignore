@@ -25,4 +25,9 @@ Thumbs.db
 
 # Too large files
 scripts/rutenett_veg.geojson 
-scripts/omkjoring/data/
+scripts/detours/data/
+
+# Large files for local testing 
+
+scripts/detours/07_export_all_detour_routes_arcgis.py
+scripts/prep.py
