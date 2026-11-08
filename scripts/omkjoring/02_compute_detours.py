@@ -14,14 +14,12 @@ COUNTY = "55" # Troms
 MAIN_ROAD_CATEGORIES = {"E", "R", "F"} # Road categories that define the entry points
 DETOUR_NETWORK = {"E", "R", "F", "K"} # Road categories in the detour network
 SEARCH_LIMIT_KM = 500.0
-FERRY_PENALTY_M = 0.0 # Extra length (metres) per ferry crossing. 
 WIGGLE_MAX_M = 1000.0 # max length of a piece that wiggles out and back into the cell
 AGGREGATION = "shortest" # "shortest" or "longest" detour when a cell has several road pairs
 PORT_M = 1000.0
 
 CELL_M = 1000.0         
 EDGE_TOL = 0.01         
-NODE_PRECISION = 1      
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 REPO = SCRIPT_DIR.parent.parent
@@ -100,10 +98,6 @@ def length(pts):
     return sum(math.dist(a, b) for a, b in zip(pts, pts[1:]))
 
 
-def node_key(p):
-    return (round(p[0], NODE_PRECISION), round(p[1], NODE_PRECISION))
-
-
 def on_cell_edge(p, ix, iy):
     x0, y0 = ix * CELL_M, iy * CELL_M
     return (abs(p[0] - x0) < EDGE_TOL or abs(p[0] - x0 - CELL_M) < EDGE_TOL
@@ -121,7 +115,7 @@ class Graph:
         self.edge_geometry = None   
 
     def node(self, p):
-        k = node_key(p)
+        k = (p[0], p[1])  # exact coordinates; NVDB endpoints and grid cut points coincide exactly
         i = self.node_id.get(k)
         if i is None:
             i = len(self.coords)
@@ -238,25 +232,10 @@ def build_graph(store_geometry=False):
                         continue
                     pieces_in_cell[(ix, iy)].append(e)
 
-    if FERRY_PENALTY_M:
-        add_ferry_penalty(graf, FERRY_PENALTY_M)
-
     print(f"Read {n_seg} road segments (" +
           ", ".join(f"{k or '?'}={v}" for k, v in sorted(categories.items())) + ")")
     print(f"Graph: {len(graf.coords)} nodes, {len(graf.edge_ferry)} edges")
     return graf, pieces_in_cell
-
-
-def add_ferry_penalty(graf, penalty_m): # Add penalty_m once per ferry crossing (half on each landing edge).
-    on_land = [any(not graf.edge_ferry[e] for _, _, e in nbrs) for nbrs in graf.adjacent]
-    extra = {}
-    for e, (a, b) in enumerate(graf.edge_endpoints):
-        if graf.edge_ferry[e]:
-            x = penalty_m / 2 * (on_land[a] + on_land[b])
-            if x:
-                extra[e] = x
-    for u, nbrs in enumerate(graf.adjacent):
-        graf.adjacent[u] = [(v, w + extra.get(e, 0.0), e) for v, w, e in nbrs]
 
 
 def find_entry_points(graf, cell, edges):
